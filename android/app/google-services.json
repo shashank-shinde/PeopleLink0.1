@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "570252541065",
+    "project_id": "peoplelinkfinal",
+    "storage_bucket": "peoplelinkfinal.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570252541065:android:bc3eb9e774058f50c41a58",
+        "android_client_info": {
+          "package_name": "com.people.link"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "570252541065-4aqqs1e65gi17nneq0ju7euhos8ub8f2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBXUeZ9RvvgsaBx7WqfCy_Yf_vC1kqM4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "570252541065-4aqqs1e65gi17nneq0ju7euhos8ub8f2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570252541065:android:e06f34594c8aa87dc41a58",
+        "android_client_info": {
+          "package_name": "com.peoplelink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "570252541065-4aqqs1e65gi17nneq0ju7euhos8ub8f2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBXUeZ9RvvgsaBx7WqfCy_Yf_vC1kqM4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "570252541065-4aqqs1e65gi17nneq0ju7euhos8ub8f2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
