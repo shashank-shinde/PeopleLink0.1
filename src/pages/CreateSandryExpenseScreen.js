@@ -600,7 +600,7 @@ class CreateSandryExpenseScreen extends Component {
 
           {value === '0' ? null
             : (
-              <View pointerEvents={'none'}>
+              <View>
                 <Card style={styles.cards} onPress={() => this.setState({ isDatePickerVisible: true })}>
                   <View style={styles.cardMenuSpasing}>
                     <Text style={[styles.cardLabel, { color: secondaryColor }]}>
