@@ -8,16 +8,25 @@ import {
   TextInput,
   Text,
   TouchableOpacity,
-  ToastAndroid
+  ToastAndroid,
+  Image,
+  FlatList,
+  Platform,
+  PermissionsAndroid
 } from 'react-native';
 import { Picker } from 'native-base';
 import { connect } from 'react-redux';
 import { Button, Card } from 'react-native-paper';
 import Moment from 'moment';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import DocumentPicker from 'react-native-document-picker';
 import MessageModal from '../components/MessageModal';
 import getMessage from '../config/GetMessage';
-var counter1 = 0, counter2 = 0, counter3 = 0, counter4 = 0, counter5 = 0
+import FileItem from '../components/FileItem';
+import saveIdentityAttachments from '../services/saveIdentityAttachments';
+
+let counter1 = 0; let counter2 = 0; let counter3 = 0; let counter4 = 0; let
+  counter5 = 0;
 let typeofcontact = [];
 class App extends Component {
   constructor(props) {
@@ -77,9 +86,10 @@ class App extends Component {
       counter3: 0,
       counter4: 0,
       counter5: 0,
-      IsNomineeRequired: false
-
+      IsNomineeRequired: false,
+      files: []
     };
+    console.log('USER', this.props.user);
     this.arrayholder = [];
   }
 
@@ -164,30 +174,29 @@ class App extends Component {
         modalType: 'E',
         loadingApprove: false
       });
-    }
-    else if (this.state.IsNomineeRequired === true) {
-      counter1 = 0, counter2 = 0, counter3 = 0, counter4 = 0, counter5 = 0
-      console.log("444444fff", counter4);
+    } else if (this.state.IsNomineeRequired === true) {
+      counter1 = 0, counter2 = 0, counter3 = 0, counter4 = 0, counter5 = 0;
+      console.log('444444fff', counter4);
 
-      if (this.state.nominee1Name !== '') { counter1 = counter1 + 1 }
-      if (this.state.nominee1Relation !== '') { counter1 = counter1 + 1 }
-      if (this.state.nominee1Per !== 0) { counter1 = counter1 + 1 }
+      if (this.state.nominee1Name !== '') { counter1 += 1; }
+      if (this.state.nominee1Relation !== '') { counter1 += 1; }
+      if (this.state.nominee1Per !== 0) { counter1 += 1; }
 
-      if (this.state.nominee2Name !== '') { counter2 = counter2 + 1 }
-      if (this.state.nominee2Relation !== '') { counter2 = counter2 + 1 }
-      if (this.state.nominee2Per !== 0) { counter2 = counter2 + 1 }
+      if (this.state.nominee2Name !== '') { counter2 += 1; }
+      if (this.state.nominee2Relation !== '') { counter2 += 1; }
+      if (this.state.nominee2Per !== 0) { counter2 += 1; }
 
-      if (this.state.nominee3Name !== '') { counter3 = counter3 + 1 }
-      if (this.state.nominee3Relation !== '') { counter3 = counter3 + 1 }
-      if (this.state.nominee3Per !== 0) { counter3 = counter3 + 1 }
+      if (this.state.nominee3Name !== '') { counter3 += 1; }
+      if (this.state.nominee3Relation !== '') { counter3 += 1; }
+      if (this.state.nominee3Per !== 0) { counter3 += 1; }
 
-      if (this.state.nominee4Name !== '') { counter4 = counter4 + 1 }
-      if (this.state.nominee4Relation !== '') { counter4 = counter4 + 1 }
-      if (this.state.nominee4Per !== 0) { counter4 = counter4 + 1 }
+      if (this.state.nominee4Name !== '') { counter4 += 1; }
+      if (this.state.nominee4Relation !== '') { counter4 += 1; }
+      if (this.state.nominee4Per !== 0) { counter4 += 1; }
 
-      if (this.state.nominee5Name !== '') { counter5 = counter5 + 1 }
-      if (this.state.nominee5Relation !== '') { counter5 = counter5 + 1 }
-      if (this.state.nominee5Per !== 0) { counter5 = counter5 + 1 }
+      if (this.state.nominee5Name !== '') { counter5 += 1; }
+      if (this.state.nominee5Relation !== '') { counter5 += 1; }
+      if (this.state.nominee5Per !== 0) { counter5 += 1; }
 
       if (counter1 == 1 || counter1 == 2) {
         this.setState({
@@ -229,9 +238,9 @@ class App extends Component {
           loadingApprove: false
         });
       }
-      var total = 0
+      let total = 0;
       total = parseInt(this.state.nominee1Per) + parseInt(this.state.nominee2Per) + parseInt(this.state.nominee3Per) + parseInt(this.state.nominee4Per) + parseInt(this.state.nominee5Per);
-      console.log("toott", total, this.state.nominee1Per, this.state.nominee2Per, this.state.nominee3Per, this.state.nominee4Per, this.state.nominee5Per);
+      console.log('toott', total, this.state.nominee1Per, this.state.nominee2Per, this.state.nominee3Per, this.state.nominee4Per, this.state.nominee5Per);
       if (total !== 100) {
         this.setState({
           isModalVisible: true,
@@ -240,9 +249,7 @@ class App extends Component {
           loadingApprove: false
         });
       }
-    }
-
-    else {
+    } else {
       if (this.state.visible == 'true') {
         this.add();
       } else {
@@ -251,7 +258,6 @@ class App extends Component {
       this.setState({ fromrequired: false, expiryrequired: false, idrequired: false });
     }
   }
-
 
   GetDynamicFieldsData() {
     const myarray = {
@@ -514,18 +520,60 @@ class App extends Component {
       body: JSON.stringify(myarray),
     })
       .then((response) => response.json())
-      .then((responseJson) => {
+      .then(async (responseJson) => {
         if (responseJson) {
           if (responseJson.SuccessList) {
-            const str = responseJson.SuccessList[0];
-            const res = str.split('#');
-            const msg = getMessage(res[0].toString(), this.props.messages);
-            this.setState({
-              isModalVisible: true,
-              modalMessage: msg.message,
-              modalType: msg.type,
-              loadingApprove: false
-            });
+            if (this.state.files.length > 0) {
+              try {
+                const formData = new FormData();
+                formData.append('FileName', 'download.png');
+                this.state.files.forEach(element => {
+                  formData.append('file', element);
+                });
+                formData.append('idType', '02');
+                formData.append('EmpId', this.props.user.LoginEmpID);
+                formData.append('loginEmpCompanyCodeNo', this.props.user.LoginEmpCompanyCodeNo);
+                const resFile = await saveIdentityAttachments(this.props.user, formData);
+                if (responseJson.SuccessList) {
+                  const str = responseJson.SuccessList[0];
+                  const res = str.split('#');
+                  const msg = getMessage(res[0].toString(), this.props.messages);
+                  this.setState({
+                    isModalVisible: true,
+                    modalMessage: msg.message,
+                    modalType: msg.type,
+                    loadingApprove: false
+                  });
+                } else {
+                  const msg = 'Failed to upload attachment';
+                  this.setState({
+                    isModalVisible: true,
+                    modalMessage: msg,
+                    modalType: 'E',
+                    loadingApprove: false
+                  });
+                }
+              } catch (error) {
+                console.log(error);
+                const msg = 'Failed to upload attachment';
+                this.setState({
+                  isModalVisible: true,
+                  modalMessage: msg,
+                  modalType: 'E',
+                  loadingApprove: false
+                });
+              }
+            } else {
+              const str = responseJson.SuccessList[0];
+              const res = str.split('#');
+              const msg = getMessage(res[0].toString(), this.props.messages);
+              this.setState({
+                isModalVisible: true,
+                modalMessage: msg.message,
+                modalType: msg.type,
+                loadingApprove: false
+              });
+            }
           } else if (responseJson.ErrorList) {
             const msg = getMessage(responseJson.ErrorList.toString(), this.props.messages);
             this.setState({
@@ -546,14 +594,86 @@ class App extends Component {
       });
   }
 
+  uploadAttachment= async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'App need Storage Permission',
+            message:
+              'App needs access to your Storage ',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          try {
+            const results = await DocumentPicker.pickMultiple({
+              type: [DocumentPicker.types.allFiles],
+            });
+            const { files } = this.state;
+            if (results) {
+              files.push(...results);
+              this.setState({ files, isAttachment: true });
+            }
+          } catch (err) {
+            if (DocumentPicker.isCancel(err)) {
+              // User cancelled the picker, exit any dialogs or menus and move on
+            } else {
+              throw err;
+            }
+          }
+        } else {
+          console.log('Camera permission denied');
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    } else {
+      try {
+        const results = await DocumentPicker.pickMultiple({
+          type: [DocumentPicker.types.allFiles],
+        });
+        const { files } = this.state;
+        if (results) {
+          files.push(...results);
+          this.setState({ files, isAttachment: true });
+        }
+      } catch (err) {
+        if (DocumentPicker.isCancel(err)) {
+          // User cancelled the picker, exit any dialogs or menus and move on
+        } else {
+          throw err;
+        }
+      }
+    }
+  }
+
+  removeFile = index => {
+    const { files } = this.state;
+    if (files[index].FileType) {
+      const delFile = {
+        FileName: files[index].FileName,
+      };
+      this.deletedFiles.push(delFile);
+    }
+    files.splice(index, 1);
+    this.setState({ files });
+  }
+
   onValueChange = async (itemValue) => {
-    for (var i = 0; i < this.state.nomineeData.length; i++) {
+    for (let i = 0; i < this.state.nomineeData.length; i++) {
       if (itemValue == this.state.nomineeData[i].USRTYVal) {
         if (this.state.nomineeData[i].IsNomineeRequired == 1) {
-          this.setState({ IsNomineeRequired: true, counter1: 0, counter2: 0, counter3: 0, counter4: 0, counter5: 0 })
-        }
-        else {
-          this.setState({ IsNomineeRequired: false, counter1: 0, counter2: 0, counter3: 0, counter4: 0, counter5: 0 })
+          this.setState({
+            IsNomineeRequired: true, counter1: 0, counter2: 0, counter3: 0, counter4: 0, counter5: 0
+          });
+        } else {
+          this.setState({
+            IsNomineeRequired: false, counter1: 0, counter2: 0, counter3: 0, counter4: 0, counter5: 0
+          });
         }
       }
     }
@@ -647,11 +767,20 @@ class App extends Component {
                 </View>
               </View>
 
-              <View style={{ width: wp('100%'), height: 60, marginTop: 24, flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: wp('50%'), height: 60, flexDirection: 'column', alignItems: 'center' }}>
+              <View style={{
+                width: wp('100%'), height: 60, marginTop: 24, flexDirection: 'row', alignItems: 'center'
+              }}
+              >
+                <View style={{
+                  width: wp('50%'), height: 60, flexDirection: 'column', alignItems: 'center'
+                }}
+                >
                   {this.state.visible === 'true' ? (
                     <Card style={styles.cards}>
-                      <View style={{ width: wp('43%'), height: 55, borderRadius: 5, backgroundColor: '#fff', flexDirection: 'column', justifyContent: 'center' }}>
+                      <View style={{
+                        width: wp('43%'), height: 55, borderRadius: 5, backgroundColor: '#fff', flexDirection: 'column', justifyContent: 'center'
+                      }}
+                      >
                         <Text style={{ color: this.props.secondaryColor, marginLeft: 10, fontSize: 11, }}>Type of Contact</Text>
                         <Picker
                           style={{ height: 30 }}
@@ -666,17 +795,17 @@ class App extends Component {
                       </View>
                     </Card>
                   ) : (
-                      <Card style={styles.cards}>
-                        <View style={{
-                          width: wp('43%'), height: 55, borderRadius: 5, backgroundColor: '#fff', flexDirection: 'column', justifyContent: 'center'
-                        }}
-                        >
-                          <Text style={{ color: '#00000050', marginLeft: 10, fontSize: 11, }}>Type of Contact</Text>
-                          <Text style={{ color: '#00000050', marginLeft: 10, fontSize: 14, }}>{this.state.Typeofcontact}</Text>
+                    <Card style={styles.cards}>
+                      <View style={{
+                        width: wp('43%'), height: 55, borderRadius: 5, backgroundColor: '#fff', flexDirection: 'column', justifyContent: 'center'
+                      }}
+                      >
+                        <Text style={{ color: '#00000050', marginLeft: 10, fontSize: 11, }}>Type of Contact</Text>
+                        <Text style={{ color: '#00000050', marginLeft: 10, fontSize: 14, }}>{this.state.Typeofcontact}</Text>
 
-                        </View>
-                      </Card>
-                    )}
+                      </View>
+                    </Card>
+                  )}
                   <View style={{ width: wp('43%'), alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                     {this.state.contactrequired ? <Text style={styles.requiredMessage}>*Required</Text>
                       : null}
@@ -687,10 +816,14 @@ class App extends Component {
                   <Card style={styles.cards}>
                     <View style={styles.view3}>
                       <View style={styles.view4}>
-                        <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
+                        <Text style={{
+                          color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                        }}
+                        >
                           ID/Number
                         </Text>
-                        <TextInput style={styles.textStyle2}
+                        <TextInput
+                          style={styles.textStyle2}
                           placeholder="Enter Id"
                           onChangeText={(text) => this.setState({ idnumber: text, idrequired: false })}
                           value={this.state.idnumber}
@@ -706,270 +839,355 @@ class App extends Component {
               </View>
 
               {
-                this.state.IsNomineeRequired == true ?
-                  <View>
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee1 Name
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Name"
-                                onChangeText={(text) => this.setState({ nominee1Name: text })}
-                                value={this.state.nominee1Name}
-                              />
+                this.state.IsNomineeRequired == true
+                  ? (
+                    <View>
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee1 Name
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Name"
+                                  onChangeText={(text) => this.setState({ nominee1Name: text })}
+                                  value={this.state.nominee1Name}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee1 Relation
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Relation"
-                                onChangeText={(text) => this.setState({ nominee1Relation: text })}
-                                value={this.state.nominee1Relation}
-                              />
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee1 Relation
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Relation"
+                                  onChangeText={(text) => this.setState({ nominee1Relation: text })}
+                                  value={this.state.nominee1Relation}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
+                          </Card>
+                        </View>
                       </View>
-                    </View>
 
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee1 Percentage
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Percentage"
-                                onChangeText={(text) => this.setState({ nominee1Per: text, })}
-                                value={this.state.nominee1Per}
-                              />
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee1 Percentage
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Percentage"
+                                  onChangeText={(text) => this.setState({ nominee1Per: text, })}
+                                  value={this.state.nominee1Per}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee2 Name
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Name"
-                                onChangeText={(text) => this.setState({ nominee2Name: text })}
-                                value={this.state.nominee2Name}
-                              />
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee2 Name
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Name"
+                                  onChangeText={(text) => this.setState({ nominee2Name: text })}
+                                  value={this.state.nominee2Name}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
+                          </Card>
+                        </View>
                       </View>
-                    </View>
 
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee2 Relation
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Relation"
-                                onChangeText={(text) => this.setState({ nominee2Relation: text })}
-                                value={this.state.nominee2Relation}
-                              />
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee2 Relation
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Relation"
+                                  onChangeText={(text) => this.setState({ nominee2Relation: text })}
+                                  value={this.state.nominee2Relation}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee2 Percentage
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Percentage"
-                                onChangeText={(text) => this.setState({ nominee2Per: text })}
-                                value={this.state.nominee2Per}
-                              />
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee2 Percentage
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Percentage"
+                                  onChangeText={(text) => this.setState({ nominee2Per: text })}
+                                  value={this.state.nominee2Per}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
+                          </Card>
+                        </View>
                       </View>
-                    </View>
 
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee3 Name
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Name"
-                                onChangeText={(text) => this.setState({ nominee3Name: text })}
-                                value={this.state.nominee3Name}
-                              />
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee3 Name
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Name"
+                                  onChangeText={(text) => this.setState({ nominee3Name: text })}
+                                  value={this.state.nominee3Name}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee3 Relation
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Relation"
+                                  onChangeText={(text) => this.setState({ nominee3Relation: text })}
+                                  value={this.state.nominee3Relation}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
                       </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee3 Relation
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Relation"
-                                onChangeText={(text) => this.setState({ nominee3Relation: text })}
-                                value={this.state.nominee3Relation}
-                              />
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee3 Percentage
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Percentage"
+                                  onChangeText={(text) => this.setState({ nominee3Per: text })}
+                                  value={this.state.nominee3Per}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        </Card>
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee4 Name
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Name"
+                                  onChangeText={(text) => this.setState({ nominee4Name: text })}
+                                  value={this.state.nominee4Name}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
+                      </View>
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee4 Relation
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Relation"
+                                  onChangeText={(text) => this.setState({ nominee4Relation: text })}
+                                  value={this.state.nominee4Relation}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee4 Percentage
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Percentage"
+                                  onChangeText={(text) => this.setState({ nominee4Per: text })}
+                                  value={this.state.nominee4Per}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
+                      </View>
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee5 Name
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Name"
+                                  onChangeText={(text) => this.setState({ nominee5Name: text, })}
+                                  value={this.state.nominee5Name}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee5 Relation
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Relation"
+                                  onChangeText={(text) => this.setState({ nominee5Relation: text })}
+                                  value={this.state.nominee5Relation}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
+                      </View>
+                      <View style={styles.view1}>
+                        <View style={styles.view2}>
+                          <Card style={styles.cards}>
+                            <View style={styles.view3}>
+                              <View style={styles.view4}>
+                                <Text style={{
+                                  color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11,
+                                }}
+                                >
+                                  Nominee5 Percentage
+                                </Text>
+                                <TextInput
+                                  style={styles.textStyle2}
+                                  placeholder="Enter Percentage"
+                                  onChangeText={(text) => this.setState({ nominee5Per: text })}
+                                  value={this.state.nominee5Per}
+                                />
+                              </View>
+                            </View>
+                          </Card>
+                        </View>
                       </View>
                     </View>
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee3 Percentage
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Percentage"
-                                onChangeText={(text) => this.setState({ nominee3Per: text })}
-                                value={this.state.nominee3Per}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee4 Name
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Name"
-                                onChangeText={(text) => this.setState({ nominee4Name: text })}
-                                value={this.state.nominee4Name}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                    </View>
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee4 Relation
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Relation"
-                                onChangeText={(text) => this.setState({ nominee4Relation: text })}
-                                value={this.state.nominee4Relation}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee4 Percentage
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Percentage"
-                                onChangeText={(text) => this.setState({ nominee4Per: text })}
-                                value={this.state.nominee4Per}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                    </View>
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee5 Name
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Name"
-                                onChangeText={(text) => this.setState({ nominee5Name: text, })}
-                                value={this.state.nominee5Name}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee5 Relation
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Relation"
-                                onChangeText={(text) => this.setState({ nominee5Relation: text })}
-                                value={this.state.nominee5Relation}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                    </View>
-                    <View style={styles.view1}>
-                      <View style={styles.view2}>
-                        <Card style={styles.cards}>
-                          <View style={styles.view3}>
-                            <View style={styles.view4}>
-                              <Text style={{ color: this.props.secondaryColor, marginLeft: 10, marginTop: 10, marginBottom: 8, height: 50, fontSize: 11, }}>
-                                Nominee5 Percentage
-                        </Text>
-                              <TextInput style={styles.textStyle2}
-                                placeholder="Enter Percentage"
-                                onChangeText={(text) => this.setState({ nominee5Per: text })}
-                                value={this.state.nominee5Per}
-                              />
-                            </View>
-                          </View>
-                        </Card>
-                      </View>
-                    </View>
-                  </View>
+                  )
                   : null
               }
+
+              <View style={styles.attachmentView}>
+                <Text style={{ color: 'black', }}>Upload Attachment</Text>
+                <View flexDirection="row" marginTop={10}>
+                  <TouchableOpacity onPress={() => this.uploadAttachment()}>
+                    <Image style={{ height: 50, width: 50 }} source={require('../assets/images/ic_attachment.png')} />
+                  </TouchableOpacity>
+
+                  <FlatList
+                    data={this.state.files}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ alignItems: 'center' }}
+                    style={{ flex: 1 }}
+                    renderItem={({ item, index }) => (
+                      <FileItem item={item} isEditing={this.item} onPress={() => this.removeFile(index)} />
+                    )}
+                    keyExtractor={item => item.id}
+                  />
+                </View>
+                {/* {isAttachment ? null
+                  : <Text style={styles.requiredMessage}>*Required</Text>} */}
+              </View>
 
               {this.state.visible === 'true' ? (
                 <Button
@@ -987,21 +1205,21 @@ class App extends Component {
                   ADD
                 </Button>
               ) : (
-                  <Button
-                    loading={this.state.spinner}
-                    disabled={this.state.spinner}
-                    contentStyle={{ height: 45 }}
-                    icon="arrow-right-bold-box"
-                    style={styles.button}
-                    color={this.props.primaryColor}
-                    labelStyle={{ color: 'white', fontSize: 15, textAlign: 'center' }}
-                    mode="contained"
-                    uppercase={false}
-                    onPress={() => this.validate()}
-                  >
-                    UPDATE
-                  </Button>
-                )}
+                <Button
+                  loading={this.state.spinner}
+                  disabled={this.state.spinner}
+                  contentStyle={{ height: 45 }}
+                  icon="arrow-right-bold-box"
+                  style={styles.button}
+                  color={this.props.primaryColor}
+                  labelStyle={{ color: 'white', fontSize: 15, textAlign: 'center' }}
+                  mode="contained"
+                  uppercase={false}
+                  onPress={() => this.validate()}
+                >
+                  UPDATE
+                </Button>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -1017,6 +1235,13 @@ const styles = StyleSheet.create({
     width: 20,
     height: 25,
     marginLeft: 10,
+  },
+  attachmentView: {
+    flexDirection: 'column',
+    paddingHorizontal: 10,
+    marginTop: 15,
+    justifyContent: 'center',
+    width: '100%'
   },
   textStyle1: {
     color: '#000',
@@ -1090,7 +1315,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   }
 
-
 });
 const mapStateToProps = state => ({
   primaryColor: state.theme.primaryColor,
@@ -1099,7 +1323,6 @@ const mapStateToProps = state => ({
   isLoggedIn: state.user.isLoggedIn,
   messages: state.messageData.messages,
 });
-
 
 export default connect(
   mapStateToProps,
